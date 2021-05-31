@@ -27,10 +27,11 @@ func main() {
 	time.Sleep(time.Second * 1)
 	defer port.Close()
 
-	get_ppm(*port)
+	co2 := getCo2(*port)
+	fmt.Println(co2)
 }
 
-func get_ppm(port serial.Port) {
+func getCo2(port serial.Port) int {
 	command := [9]byte{0xff, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79}
 	n, err := port.Write(command[:])
 	if err != nil {
@@ -51,11 +52,10 @@ func get_ppm(port serial.Port) {
 			break
 		}
 	}
-	fmt.Println(res)
 	checksum := 0xff & (^(res[1] + res[2] + res[3] + res[4] + res[5] + res[6] + res[7]) + 1)
 	if res[8] != checksum {
 		log.Fatalln("checksum not match")
 	}
 	result := int(res[2]) << 8 + int(res[3])
-	fmt.Println(result)
+	return result
 }
