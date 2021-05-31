@@ -11,6 +11,7 @@ import (
 
 var (
 	port = kingpin.Arg("port", "portName").Required().ExistingFile()
+	zero = kingpin.Flag("zero", "zero calibration mode").Bool()
 )
 
 func main() {
@@ -27,6 +28,10 @@ func main() {
 	time.Sleep(time.Second * 1)
 	defer port.Close()
 
+	if *zero {
+		zeroCalibration(*port)
+		return
+	}
 	co2 := getCo2(*port)
 	fmt.Println(co2)
 }
@@ -58,4 +63,13 @@ func getCo2(port serial.Port) int {
 	}
 	result := int(res[2]) << 8 + int(res[3])
 	return result
+}
+
+func zeroCalibration(port serial.Port) error {
+	command := [9]byte{0xff, 0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78}
+	n, err := port.Write(command[:])
+	if err != nil || n != 9 {
+		log.Fatalln("serial write error: %w", err)
+	}
+	return err
 }
