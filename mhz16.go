@@ -1,14 +1,14 @@
-package main
+package mhz16
 
 import (
 	"fmt"
 	"log"
 
+	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/tarm/serial"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-type mhz16 struct {
+type Mhz16 struct {
 	port serial.Port
 }
 
@@ -17,7 +17,7 @@ var (
 	calibrationCommand = []byte{0xff, 0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78}
 )
 
-func (m *mhz16) initialize(portName string) error {
+func Open(portName string) (*Mhz16, error) {
 	options := &serial.Config{
 		Name:        portName,
 		Baud:        9600,
@@ -25,18 +25,18 @@ func (m *mhz16) initialize(portName string) error {
 	}
 	port, err := serial.OpenPort(options)
 	if err != nil {
-		return fmt.Errorf("serial port cannot open: %w", err)
+		return nil, fmt.Errorf("serial port cannot open: %w", err)
 	}
-	m.port = *port
-	return nil
+	m := Mhz16{port: *port}
+	return &m, nil
 }
 
-func (m *mhz16) close() error {
+func (m *Mhz16) Close() error {
 	err := m.port.Close()
 	return err
 }
 
-func (m *mhz16) getCo2() (int, error) {
+func (m *Mhz16) GetCo2() (int, error) {
 	n, err := m.port.Write(getCommand)
 	if err != nil {
 		return 0, fmt.Errorf("serial write error: %w", err)
@@ -64,7 +64,7 @@ func (m *mhz16) getCo2() (int, error) {
 	return result, nil
 }
 
-func (m *mhz16) zeroCalibration() error {
+func (m *Mhz16) ZeroCalibration() error {
 	n, err := m.port.Write(calibrationCommand)
 	if err != nil || n != 9 {
 		return fmt.Errorf("serial write error: %w", err)
@@ -78,18 +78,17 @@ func main() {
 
 	kingpin.Parse()
 
-	m := mhz16{}
-	err := m.initialize(*portName)
+	m, err := Open(*portName)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer m.close()
+	defer m.Close()
 
 	if *zero {
-		m.zeroCalibration()
+		m.ZeroCalibration()
 		return
 	}
-	co2, err := m.getCo2()
+	co2, err := m.GetCo2()
 	if err != nil {
 		log.Fatalln(err)
 	}
