@@ -2,9 +2,7 @@ package mhz16
 
 import (
 	"fmt"
-	"log"
 
-	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/tarm/serial"
 )
 
@@ -70,27 +68,4 @@ func (m *Mhz16) ZeroCalibration() error {
 		return fmt.Errorf("serial write error: %w", err)
 	}
 	return nil
-}
-
-func main() {
-	portName := kingpin.Arg("port", "portName").Required().ExistingFile()
-	zero := kingpin.Flag("zero", "zero calibration mode").Bool()
-
-	kingpin.Parse()
-
-	m, err := Open(*portName)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer m.Close()
-
-	if *zero {
-		m.ZeroCalibration()
-		return
-	}
-	co2, err := m.GetCo2()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Println(co2)
 }
